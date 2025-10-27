@@ -1,86 +1,59 @@
 const gallery = document.getElementById('gallery');
-let currentPage = 1;
-const imagesPerRow = 4; // Кількість зображень в рядку
-const minGap = 3; // Мінімальний відступ
-const maxGap = 15; // Максимальний відступ
+const loadMoreBtn = document.getElementById('loadMore');
+const clearGalleryBtn = document.getElementById('clearGallery');
+const deleteLastBtn = document.getElementById('deleteLast');
+const reverseGalleryBtn = document.getElementById('reverseGallery');
 
-async function fetchImages(page) {
-    const response = await fetch(`https://picsum.photos/v2/list?page=${page}&limit=${imagesPerRow * 1}`);
-    const images = await response.json();
-    displayImages(images);
-}
+let page = 1; // будемо підвантажувати нові картинки
+const limit = 4;
 
-function displayImages(images) {
-    images.forEach(image => {
-        const imgElement = document.createElement('img');
-        imgElement.src = image.download_url;
-        gallery.appendChild(imgElement);
-    });
-    
-    updateImageSizes(); // Оновлюємо розміри зображень після їх додавання
-}
-
-function updateImageSizes() {
-    const containerWidth = gallery.clientWidth; // Ширина контейнера
-    const gap = Math.min(Math.max(containerWidth * 0.03, minGap), maxGap); // Обчислюємо відступ
-    const totalGapWidth = gap * (imagesPerRow - 1); // Загальна ширина відступів
-    const imageWidth = (containerWidth - totalGapWidth) / imagesPerRow; // Ширина кожного зображення
-
-    const imgElements = gallery.getElementsByTagName('img');
-    for (let img of imgElements) {
-        img.style.width = `${imageWidth}px`; // Встановлюємо ширину
-        img.style.height = 'auto'; // Автоматична висота
+// Функція для отримання картинок
+async function fetchImages() {
+    try {
+        const response = await fetch(`https://picsum.photos/v2/list?page=${page}&limit=${limit}`);
+        const data = await response.json();
+        displayImages(data);
+        page++; // при наступному виклику отримуємо нові картинки
+    } catch (error) {
+        console.error('Помилка при завантаженні картинок:', error);
     }
-    
-    // Додати gap до стилю галереї
-    gallery.style.gap = `${gap}px`;
 }
 
-// Завантажити початкові картинки
-fetchImages(currentPage);
-
-// Завантажити ще картинки
-document.getElementById('loadMore').addEventListener('click', async () => {
-    currentPage++;
-    await fetchImages(currentPage);
-});
+// Відображення картинок у галереї
+function displayImages(images) {
+    images.forEach(img => {
+        const imageElement = document.createElement('img');
+        imageElement.src = `https://picsum.photos/id/${img.id}/300/200`;
+        imageElement.alt = img.author;
+        gallery.appendChild(imageElement);
+    });
+}
 
 // Очистити галерею
-document.getElementById('clearGallery').addEventListener('click', () => {
+function clearGallery() {
     gallery.innerHTML = '';
-    currentPage = 1; // Скидаємо номер сторінки
-});
+}
 
 // Видалити останню картинку
-document.getElementById('removeLast').addEventListener('click', () => {
-    const images = gallery.getElementsByTagName('img');
+function deleteLastImage() {
+    const images = gallery.querySelectorAll('img');
     if (images.length > 0) {
-        gallery.removeChild(images[images.length - 1]);
-        updateImageSizes(); // Оновлюємо розміри
+        images[images.length - 1].remove();
     }
-});
+}
 
 // Перевернути галерею
-document.getElementById('reverseGallery').addEventListener('click', () => {
-    const images = Array.from(gallery.getElementsByTagName('img'));
+function reverseGallery() {
+    const images = Array.from(gallery.querySelectorAll('img'));
     gallery.innerHTML = '';
     images.reverse().forEach(img => gallery.appendChild(img));
-    updateImageSizes(); // Оновлюємо розміри
-});
+}
 
-// Перемішати галерею
-document.getElementById('shuffleGallery').addEventListener('click', () => {
-    const images = Array.from(gallery.getElementsByTagName('img'));
-    gallery.innerHTML = '';
-    for (let i = images.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [images[i], images[j]] = [images[j], images[i]];
-    }
-    images.forEach(img => gallery.appendChild(img));
-    updateImageSizes(); // Оновлюємо розміри
-});
+// Слухачі кнопок
+loadMoreBtn.addEventListener('click', fetchImages);
+clearGalleryBtn.addEventListener('click', clearGallery);
+deleteLastBtn.addEventListener('click', deleteLastImage);
+reverseGalleryBtn.addEventListener('click', reverseGallery);
 
-// Оновлюємо розміри зображень при зміні розміру вікна
-window.addEventListener('resize', () => {
-    updateImageSizes();
-});
+// Перший виклик при завантаженні сторінки
+fetchImages();
